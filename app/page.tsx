@@ -1,101 +1,167 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect } from "react";
+import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, googleProvider } from "./firebaseConfig";
+import Quiz from "./Component/Quiz";
+import { User } from "firebase/auth";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [quizStarted, setQuizStarted] = useState<boolean>(() => {
+    return localStorage.getItem("quizInProgress") === "true"; 
+  });
+  const [name, setName] = useState<string>("");
+  const [user, setUser] = useState<User | null>(null);
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [numQuestions, setNumQuestions] = useState<number>(10);
+  const [quizCompleted, setQuizCompleted] = useState<boolean>(() => {
+    return localStorage.getItem("quizCompleted") === "true"; // Check if quiz was completed
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  // Google Sign-In
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      setUser(result.user);
+    } catch (error) {
+      console.error("Error logging in: ", error);
+    }
+  };
+
+  // Email/Password Registration
+  const handleRegister = async () => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      setUser(result.user);
+    } catch (error) {
+      console.error("Error registering: ", error);
+    }
+  };
+
+  // Google Logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      setName("");
+      localStorage.removeItem("quizInProgress");
+      localStorage.removeItem("quizCompleted");
+    } catch (error) {
+      console.error("Error logging out: ", error);
+    }
+  };
+
+  // Track authentication state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setName(currentUser?.displayName || "");
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Start quiz and enter full screen
+  const startQuiz = () => {
+    setQuizStarted(true);
+    localStorage.setItem("quizInProgress", "true"); // Save quiz start state
+
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    }
+
+    window.addEventListener("beforeunload", confirmExit);
+  };
+
+  const confirmExit = (event: { preventDefault: () => void; returnValue: string }) => {
+    event.preventDefault();
+    event.returnValue = "Are you sure you want to exit? Your progress will be lost.";
+  };
+
+  // Check if quiz was completed before
+  useEffect(() => {
+    if (quizCompleted) {
+      setQuizStarted(false);
+    }
+  }, [quizCompleted]);
+
+  // Mark quiz as completed
+  const finishQuiz = () => {
+    setQuizCompleted(true);
+    localStorage.setItem("quizCompleted", "true");
+  };
+
+  return (
+    <div className="container mx-auto mt-10 text-center">
+      <h1 className="text-green-600 text-3xl font-bold mb-4">Quizi</h1>
+      <h3 className="text-xl mb-6">Quiz App</h3>
+
+      {user ? (
+        <>
+          <p className="mb-2">Welcome, {user.displayName || "User"}!</p>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 mb-4"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Logout
+          </button>
+
+          {quizCompleted ? (
+            <div>
+              <h2 className="text-2xl font-bold text-red-600">Quiz Completed!</h2>
+              <p>Your results have been saved.</p>
+            </div>
+          ) : !quizStarted ? (
+            <div>
+              <label className="block mb-2">Select Number of Questions:</label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={numQuestions}
+                onChange={(e) => setNumQuestions(Number(e.target.value))}
+                className="border px-2 py-1 mb-4"
+              />
+              <button
+                onClick={startQuiz}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                Start Quiz
+              </button>
+            </div>
+          ) : (
+            <Quiz name={name} numQuestions={numQuestions} finishQuiz={finishQuiz} />
+          )}
+        </>
+      ) : (
+        <div>
+          <button
+            onClick={handleGoogleLogin}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 mb-4"
           >
-            Read our docs
-          </a>
+            Login with Google
+          </button>
+          <h3 className="text-xl mb-4">Register</h3>
+          <input
+            type="email"
+            placeholder="Email"
+            className="block w-full px-4 py-2 border mb-2"
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="block w-full px-4 py-2 border mb-2"
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            onClick={handleRegister}
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+          >
+            Register
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
     </div>
   );
 }
