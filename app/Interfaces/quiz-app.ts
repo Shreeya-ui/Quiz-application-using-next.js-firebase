@@ -24,6 +24,5 @@ export interface ScoreCardProps {
 export interface QuizProps {
     name: string;
     numQuestions: number;
-    finishQuiz: () => void; // Add this line
-  }
-  
+    finishQuiz: (finalScore: number) => void;
+}

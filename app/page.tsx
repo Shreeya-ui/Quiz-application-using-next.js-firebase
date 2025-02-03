@@ -1,22 +1,56 @@
 "use client";
 import { useState, useEffect } from "react";
-import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
+import { 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged, 
+  createUserWithEmailAndPassword 
+} from "firebase/auth";
 import { auth, googleProvider } from "./firebaseConfig";
 import Quiz from "./Component/Quiz";
 import { User } from "firebase/auth";
 
 export default function Home() {
   const [quizStarted, setQuizStarted] = useState<boolean>(() => {
-    return localStorage.getItem("quizInProgress") === "true"; 
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("quizInProgress") === "true";
+    }
+    return false;
   });
+  
   const [name, setName] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [emailError, setEmailError] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
   const [numQuestions, setNumQuestions] = useState<number>(10);
   const [quizCompleted, setQuizCompleted] = useState<boolean>(() => {
-    return localStorage.getItem("quizCompleted") === "true"; // Check if quiz was completed
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("quizCompleted") === "true";
+    }
+    return false;
   });
+
+  const [score, setScore] = useState<number | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("quizScore")
+        ? Number(localStorage.getItem("quizScore"))
+        : null;
+    }
+    return null;
+  });
+
+  // Validate Email
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Validate Password
+  const validatePassword = (password: string) => {
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password);
+  };
 
   // Google Sign-In
   const handleGoogleLogin = async () => {
@@ -30,6 +64,19 @@ export default function Home() {
 
   // Email/Password Registration
   const handleRegister = async () => {
+    setEmailError("");
+    setPasswordError("");
+
+    if (!validateEmail(email)) {
+      setEmailError("Invalid email format. Example: user@example.com");
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setPasswordError("Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character.");
+      return;
+    }
+
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       setUser(result.user);
@@ -46,6 +93,8 @@ export default function Home() {
       setName("");
       localStorage.removeItem("quizInProgress");
       localStorage.removeItem("quizCompleted");
+      localStorage.removeItem("quizScore");
+      setScore(null);
     } catch (error) {
       console.error("Error logging out: ", error);
     }
@@ -63,7 +112,9 @@ export default function Home() {
   // Start quiz and enter full screen
   const startQuiz = () => {
     setQuizStarted(true);
-    localStorage.setItem("quizInProgress", "true"); // Save quiz start state
+    setScore(null);
+    localStorage.setItem("quizInProgress", "true");
+    localStorage.removeItem("quizScore");
 
     const elem = document.documentElement;
     if (elem.requestFullscreen) {
@@ -78,17 +129,17 @@ export default function Home() {
     event.returnValue = "Are you sure you want to exit? Your progress will be lost.";
   };
 
-  // Check if quiz was completed before
   useEffect(() => {
     if (quizCompleted) {
       setQuizStarted(false);
     }
   }, [quizCompleted]);
 
-  // Mark quiz as completed
-  const finishQuiz = () => {
+  const finishQuiz = (finalScore: number) => {
     setQuizCompleted(true);
+    setScore(finalScore);
     localStorage.setItem("quizCompleted", "true");
+    localStorage.setItem("quizScore", String(finalScore));
   };
 
   return (
@@ -109,7 +160,11 @@ export default function Home() {
           {quizCompleted ? (
             <div>
               <h2 className="text-2xl font-bold text-red-600">Quiz Completed!</h2>
-              <p>Your results have been saved.</p>
+              {score !== null ? (
+                <p className="text-lg font-bold">Your Score: {score} / {numQuestions}</p>
+              ) : (
+                <p>Your results have been saved.</p>
+              )}
             </div>
           ) : !quizStarted ? (
             <div>
@@ -148,12 +203,16 @@ export default function Home() {
             className="block w-full px-4 py-2 border mb-2"
             onChange={(e) => setEmail(e.target.value)}
           />
+          {emailError && <p className="text-red-500">{emailError}</p>}
+
           <input
             type="password"
             placeholder="Password"
             className="block w-full px-4 py-2 border mb-2"
             onChange={(e) => setPassword(e.target.value)}
           />
+          {passwordError && <p className="text-red-500">{passwordError}</p>}
+
           <button
             onClick={handleRegister}
             className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"

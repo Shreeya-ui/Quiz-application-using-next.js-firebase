@@ -1,4 +1,3 @@
-// Quiz.tsx
 import React, { useState, useEffect } from "react";
 import { fetchQuizQuestions } from "../Data/QuestionSet";
 import ScoreCard from "./ScoreCard";
@@ -51,18 +50,12 @@ const Quiz: React.FC<QuizProps> = ({ name, numQuestions, finishQuiz }) => {
   };
 
   const handleNextQuestion = () => {
-    if (selectedAnswer === correctAnswer) {
-      setQuizResult((prev) => ({
-        ...prev,
-        score: prev.score + 5,
-        correctAnswers: prev.correctAnswers + 1,
-      }));
-    } else {
-      setQuizResult((prev) => ({
-        ...prev,
-        wrongAnswers: prev.wrongAnswers + 1,
-      }));
-    }
+    setQuizResult((prev) => ({
+      ...prev,
+      score: selectedAnswer === correctAnswer ? prev.score + 5 : prev.score,
+      correctAnswers: selectedAnswer === correctAnswer ? prev.correctAnswers + 1 : prev.correctAnswers,
+      wrongAnswers: selectedAnswer !== correctAnswer ? prev.wrongAnswers + 1 : prev.wrongAnswers,
+    }));
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -76,7 +69,7 @@ const Quiz: React.FC<QuizProps> = ({ name, numQuestions, finishQuiz }) => {
 
   const handleAutoSubmit = () => {
     setShowResults(true);
-    finishQuiz();
+    finishQuiz(quizResult.score); // Pass the final score here
     saveQuizResultsToFirestore();
   };
 

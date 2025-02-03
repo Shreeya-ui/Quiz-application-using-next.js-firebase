@@ -1,28 +1,154 @@
-/* global.css*/
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* 🎨 Light & Dark Mode Support */
 :root {
-    --background: #ffffff;
-    --foreground: #171717;
+    --background: #f8fafc;
+    --foreground: #1e293b;
+    --primary: #2563eb;
+    --secondary: #3b82f6;
+    --accent: #f97316;
+    --danger: #ef4444;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --background: #0a0a0a;
-        --foreground: #ededed;
+        --background: #0f172a;
+        --foreground: #e2e8f0;
+        --primary: #3b82f6;
+        --secondary: #60a5fa;
+        --accent: #facc15;
+        --danger: #f87171;
     }
 }
 
+/* 🌍 Global Styles */
 body {
     color: var(--foreground);
     background: var(--background);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: "Inter", sans-serif;
+    transition: background 0.3s ease-in-out, color 0.3s ease-in-out;
 }
 
-@layer utilities {
-    .text-balance {
-        text-wrap: balance;
+/* 📝 Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    color: var(--primary);
+    text-align: center;
+}
+
+h3 {
+    font-size: 1.5rem;
+    color: var(--secondary);
+    text-align: center;
+}
+
+/* 🎨 Buttons */
+button {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--primary);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out, transform 0.1s ease-in-out;
+}
+
+button:hover {
+    background: var(--secondary);
+    transform: scale(1.05);
+}
+
+button:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+}
+
+/* 🔢 Input Fields */
+input, select {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 2px solid var(--primary);
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.3s ease-in-out;
+}
+
+input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.5);
+}
+
+/* 📦 Quiz Container */
+.quiz-container {
+    max-width: 600px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+}
+
+.quiz-container:hover {
+    transform: translateY(-5px);
+}
+
+/* 🚀 Animated Loading State */
+.loading {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* ✅ Correct & ❌ Wrong Answers */
+.correct {
+    background: #22c55e !important;
+    color: white !important;
+}
+
+.wrong {
+    background: #ef4444 !important;
+    color: white !important;
+}
+
+/* ⏳ Timer Display */
+.timer {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--accent);
+    text-align: center;
+}
+
+/* 📱 Responsive Design */
+@media (max-width: 768px) {
+    .quiz-container {
+        width: 90%;
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+
+    h3 {
+        font-size: 1.2rem;
     }
 }
